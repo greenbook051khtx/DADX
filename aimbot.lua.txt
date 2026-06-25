@@ -1,0 +1,62 @@
+﻿local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
+
+
+local localPlayer = Players.LocalPlayer
+local AimBotActive = false
+local ACTION_NAME = "ToggleAimbot"
+
+
+local function getClosestPlayer()
+        local closestPlayer = nil
+        local shortestDistance = math.huge
+        local myChar = localPlayer.Character
+        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+
+
+        for _, player in pairs(Players:GetPlayers()) do
+                if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        if player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                                local distance = (player.Character.HumanoidRootPart.Position - myChar.HumanoidRootPart.Position).Magnitude
+                                if distance < shortestDistance then
+                                        shortestDistance = distance
+                                        closestPlayer = player.Character
+                                end
+                        end
+                end
+        end
+        return closestPlayer
+end
+
+
+local function handleAction(actionName, inputState, inputObject)
+        if inputState == Enum.UserInputState.Begin then
+                AimBotActive = not AimBotActive
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Aimbot Status",
+                        Text = AimBotActive and "Activé (ON)" or "Désactivé (OFF)",
+                        Duration = 2
+                })
+        end
+end
+
+
+ContextActionService:BindAction(ACTION_NAME, handleAction, true, Enum.KeyCode.N)
+ContextActionService:SetTitle(ACTION_NAME, "AimBot")
+
+
+RunService.RenderStepped:Connect(function()
+        if AimBotActive then
+                local target = getClosestPlayer()
+                local myChar = localPlayer.Character
+                if target and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                        local myRoot = myChar.HumanoidRootPart
+                        local targetPos = target.HumanoidRootPart.Position
+                        local lookAtPos = Vector3.new(targetPos.X, myRoot.Position.Y, targetPos.Z)
+                        pcall(function()
+                                myRoot.CFrame = CFrame.new(myRoot.Position, lookAtPos)
+                        end)
+                end
+        end
+end)
